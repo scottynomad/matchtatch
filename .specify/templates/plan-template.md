@@ -47,7 +47,28 @@
 ## Constitution Check
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+**I. Fun First**
+- [ ] Does this feature create joy or spark curiosity for kids?
+- [ ] Is visual appeal prioritized over technical elegance?
+- [ ] Would kids find this immediately engaging?
+
+**II. Ship Fast**
+- [ ] Can this be shipped in hours/days (not weeks)?
+- [ ] Are we avoiding complex build pipelines and elaborate testing?
+- [ ] No unnecessary performance optimization or multi-environment complexity?
+
+**III. Keep It Simple**
+- [ ] Using the simplest possible implementation?
+- [ ] Avoiding microservices, ORMs, unnecessary abstractions?
+- [ ] No design patterns unless obviously beneficial?
+- [ ] Single-file implementation where possible?
+
+**IV. Visual Feedback**
+- [ ] Does every user action have immediate visual feedback?
+- [ ] Are we using animations, transitions, or fun loading states?
+- [ ] Will users always know if their action worked?
+
+**Violations Requiring Justification**: Document any complexity that contradicts Keep It Simple or Ship Fast principles.
 
 ## Project Structure
 
@@ -216,4 +237,4 @@ directories captured above]
 - [ ] Complexity deviations documented
 
 ---
-*Based on Constitution v2.1.1 - See `/memory/constitution.md`*
+*Based on Constitution v1.0.0 - See `.specify/memory/constitution.md`*

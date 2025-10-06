@@ -47,14 +47,12 @@
 - [ ] T002 Initialize [language] project with [framework] dependencies
 - [ ] T003 [P] Configure linting and formatting tools
 
-## Phase 3.2: Tests First (TDD) ⚠️ MUST COMPLETE BEFORE 3.3
-**CRITICAL: These tests MUST be written and MUST FAIL before ANY implementation**
-- [ ] T004 [P] Contract test POST /api/users in tests/contract/test_users_post.py
-- [ ] T005 [P] Contract test GET /api/users/{id} in tests/contract/test_users_get.py
-- [ ] T006 [P] Integration test user registration in tests/integration/test_registration.py
-- [ ] T007 [P] Integration test auth flow in tests/integration/test_auth.py
+## Phase 3.2: Tests (Optional - Add Only If Valuable)
+**NOTE: TDD is NOT required for this demo project. Add tests only when they save time.**
+- [ ] T004 [P] Manual smoke test for core user flow (document in quickstart.md)
+- [ ] T005 [Optional] Automated test for critical path (if complex/error-prone)
 
-## Phase 3.3: Core Implementation (ONLY after tests are failing)
+## Phase 3.3: Core Implementation
 - [ ] T008 [P] User model in src/models/user.py
 - [ ] T009 [P] UserService CRUD in src/services/user_service.py
 - [ ] T010 [P] CLI --create-user in src/cli/user_commands.py
@@ -93,9 +91,10 @@ Task: "Integration test auth in tests/integration/test_auth.py"
 
 ## Notes
 - [P] tasks = different files, no dependencies
-- Verify tests fail before implementing
-- Commit after each task
-- Avoid: vague tasks, same file conflicts
+- Prioritize shipping over perfection
+- Manual testing is primary; automated tests are optional
+- Inline styles and hardcoded values are acceptable for speed
+- Commit when convenient, not necessarily after each task
 
 ## Task Generation Rules
 *Applied during main() execution*
@@ -119,9 +118,13 @@ Task: "Integration test auth in tests/integration/test_auth.py"
 ## Validation Checklist
 *GATE: Checked by main() before returning*
 
-- [ ] All contracts have corresponding tests
-- [ ] All entities have model tasks
-- [ ] All tests come before implementation
+- [ ] Tasks can be completed in hours/days (Ship Fast principle)
+- [ ] No unnecessary complexity or abstractions (Keep It Simple principle)
+- [ ] Visual feedback included in relevant tasks (Visual Feedback principle)
+- [ ] Features prioritize fun/engagement (Fun First principle)
 - [ ] Parallel tasks truly independent
 - [ ] Each task specifies exact file path
 - [ ] No task modifies same file as another [P] task
+
+---
+*Based on Constitution v1.0.0 - See `.specify/memory/constitution.md`*

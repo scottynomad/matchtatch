@@ -30,7 +30,8 @@
 ## ⚡ Quick Guidelines
 - ✅ Focus on WHAT users need and WHY
 - ❌ Avoid HOW to implement (no tech stack, APIs, code structure)
-- 👥 Written for business stakeholders, not developers
+- 🎮 Written for kids demo context: prioritize fun and visual engagement
+- ⚡ Keep scope small: ship in hours/days, not weeks
 
 ### Section Requirements
 - **Mandatory sections**: Must be completed for every feature
