@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎴 Memory Card Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .timer {
+            font-size: 2em;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .card {
+            width: 140px;
+            height: 140px;
+            position: relative;
+            cursor: pointer;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+        }
+
+        .card-inner {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+        }
+
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            backface-visibility: hidden;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .card-back {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            font-size: 3em;
+        }
+
+        .card-front {
+            transform: rotateY(180deg);
+            background: white;
+            overflow: hidden;
+        }
+
+        .card-front img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .card.matched {
+            cursor: default;
+        }
+
+        .card.matched .card-front::after {
+            content: '✅';
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 1.5em;
+            background: white;
+            border-radius: 50%;
+            padding: 2px;
+        }
+
+        .card.matched .card-front {
+            border: 3px solid #10b981;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+        }
+
+        .celebration-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .celebration-overlay.hidden {
+            display: none;
+        }
+
+        .celebration-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            animation: celebrationPop 0.5s ease-out;
+        }
+
+        @keyframes celebrationPop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .celebration-content h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            color: #667eea;
+            white-space: pre-line;
+        }
+
+        .celebration-content p {
+            font-size: 1.5em;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .restart-button {
+            font-size: 1.3em;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .restart-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .restart-button:active {
+            transform: translateY(0);
+        }
+
+        /* Phase 2: New Components & Animations (T005-T012) */
+
+        .matched-cards-area {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(5px);
+            z-index: 10;
+        }
+
+        .matched-cards-area.hidden {
+            display: none;
+        }
+
+        .matched-pair-stack {
+            position: relative;
+            width: 70px;
+            height: 70px;
+        }
+
+        .matched-card-small {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            transform: scale(0.5);
+            transition: transform 0.3s;
+            pointer-events: none;
+        }
+
+        .matched-card-small:first-child {
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        .matched-card-small:last-child {
+            top: 5px;
+            left: 5px;
+            z-index: 2;
+        }
+
+        @keyframes slideToBottom {
+            from {
+                transform: translateY(0) scale(1);
+            }
+            to {
+                transform: translateY(calc(100vh - 200px)) scale(0.5);
+            }
+        }
+
+        .best-time {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .best-time.hidden {
+            display: none;
+        }
+
+        .motivational-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.9), 0 0 20px rgba(255,255,255,0.5);
+            z-index: 500;
+            text-align: center;
+            pointer-events: none;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .motivational-message.hidden {
+            display: none;
+        }
+
+        @keyframes fadeInMessage {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        @keyframes fadeOutMessage {
+            from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            to { opacity: 0; transform: translate(-50%, -50%) scale(1.2); }
+        }
+
+        .fadeIn {
+            animation: fadeInMessage 0.4s ease-out;
+        }
+
+        .fadeOut {
+            animation: fadeOutMessage 0.4s ease-out;
+        }
+
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            z-index: 999;
+            pointer-events: none;
+            will-change: transform;
+        }
+
+        @keyframes confettiFall {
+            0% { transform: translateY(0) rotate(0deg); }
+            100% { transform: translateY(100vh) rotate(720deg); }
+        }
+
+        .firework {
+            position: fixed;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            z-index: 100;
+            will-change: transform, opacity;
+        }
+
+        @keyframes fireworkBurst {
+            0% {
+                transform: scale(0) translate(0, 0);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(20) translate(var(--tx), var(--ty));
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(40) translate(var(--tx), var(--ty));
+                opacity: 0;
+            }
+        }
+
+        @keyframes pulseCards {
+            0%, 100% { transform: scale(0.5); opacity: 1; }
+            50% { transform: scale(0.55); opacity: 0.8; }
+        }
+
+        .pulse {
+            animation: pulseCards 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="timer">⏱️ <span id="timer-display">0:00</span></div>
+
+    <div id="best-time" class="best-time hidden">🏆 Best Time: <span id="best-time-value">0:00</span></div>
+
+    <div id="motivational-message" class="motivational-message hidden"></div>
+
+    <div id="grid-container" class="grid-container">
+        <!-- Cards will be generated here -->
+    </div>
+
+    <div id="matched-cards-area" class="matched-cards-area hidden">
+        <!-- Matched cards will slide here -->
+    </div>
+
+    <div id="celebration-overlay" class="celebration-overlay hidden">
+        <div class="celebration-content">
+            <h1 id="win-message">🎉🎊 Amazing! You Win! 🎊🎉</h1>
+            <p id="final-time">⏱️ Time: <span id="final-time-value">0:00</span></p>
+            <button id="restart-button" class="restart-button">🔄 Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Phase 3: Core Game Logic (T010-T018)
+
+        // T010: Photos array
+        const PHOTOS = [
+            { index: 0, filename: 'PXL_20251006_012805987.jpg', src: 'media/PXL_20251006_012805987.jpg' },
+            { index: 1, filename: 'PXL_20251006_012832685.jpg', src: 'media/PXL_20251006_012832685.jpg' },
+            { index: 2, filename: 'PXL_20251006_012911401.jpg', src: 'media/PXL_20251006_012911401.jpg' },
+            { index: 3, filename: 'PXL_20251006_012926645.jpg', src: 'media/PXL_20251006_012926645.jpg' },
+            { index: 4, filename: 'PXL_20251006_013024904.jpg', src: 'media/PXL_20251006_013024904.jpg' },
+            { index: 5, filename: 'PXL_20251006_013127007.jpg', src: 'media/PXL_20251006_013127007.jpg' },
+            { index: 6, filename: 'PXL_20251006_013154729.jpg', src: 'media/PXL_20251006_013154729.jpg' },
+            { index: 7, filename: 'PXL_20251006_013222447.jpg', src: 'media/PXL_20251006_013222447.jpg' },
+            { index: 8, filename: 'PXL_20251006_013234429.jpg', src: 'media/PXL_20251006_013234429.jpg' },
+            { index: 9, filename: 'PXL_20251006_013335597.jpg', src: 'media/PXL_20251006_013335597.jpg' }
+        ];
+
+        // T020: Celebration messages array
+        const CELEBRATION_MESSAGES = [
+            '🎉🎊 Amazing! You Win! 🎊🎉',
+            '🌟 Fantastic! You\'re a Memory Champion! 🌟',
+            '🎯 Perfect Match! You Did It! 🎯',
+            '🏆 Winner Winner! Great Job! 🏆',
+            '✨ Brilliant! All Pairs Found! ✨'
+        ];
+
+        // T021: Motivational messages
+        const MOTIVATIONAL_MESSAGES = {
+            0: '🎯 Let\'s match them all!',
+            3: '🌟 Great start! Keep going!',
+            6: '🔥 You\'re on fire!',
+            9: '💪 Almost there! One more!'
+        };
+
+        // T011: Game state
+        let gameState = {
+            cards: [],
+            flippedCards: [],
+            matchedPairs: [],
+            startTime: null,
+            endTime: null,
+            isLocked: false
+        };
+
+        let timerInterval = null;
+        let flipBackTimeout = null;
+
+        // T012: Create new game
+        function createNewGame() {
+            // Generate pairs: [0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9]
+            const photoIndexes = [...Array(10).keys(), ...Array(10).keys()];
+
+            // Fisher-Yates shuffle
+            for (let i = photoIndexes.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [photoIndexes[i], photoIndexes[j]] = [photoIndexes[j], photoIndexes[i]];
+            }
+
+            // Create card objects
+            gameState.cards = photoIndexes.map((photoIndex, id) => ({
+                id,
+                photoIndex,
+                state: 'face-down',
+                element: null
+            }));
+
+            gameState.flippedCards = [];
+            gameState.matchedPairs = [];
+            gameState.startTime = null;
+            gameState.endTime = null;
+            gameState.isLocked = false;
+
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+
+            // T024: Show initial motivational message
+            showMotivationalMessage(0);
+        }
+
+        // Phase 3: Best Time Tracking (T013-T016)
+
+        function loadBestTime() {
+            try {
+                const bestTime = localStorage.getItem('memoryGameBestTime');
+                if (bestTime) {
+                    const timeMs = parseInt(bestTime, 10);
+                    if (!isNaN(timeMs) && timeMs > 0) {
+                        const seconds = Math.floor(timeMs / 1000);
+                        const minutes = Math.floor(seconds / 60);
+                        const remainingSeconds = seconds % 60;
+                        const display = `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+                        document.getElementById('best-time-value').textContent = display;
+                        document.getElementById('best-time').classList.remove('hidden');
+                        return timeMs;
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to load best time:', e);
+            }
+            return null;
+        }
+
+        function saveBestTime(timeMs) {
+            try {
+                localStorage.setItem('memoryGameBestTime', timeMs.toString());
+                const seconds = Math.floor(timeMs / 1000);
+                const minutes = Math.floor(seconds / 60);
+                const remainingSeconds = seconds % 60;
+                const display = `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+                document.getElementById('best-time-value').textContent = display;
+                document.getElementById('best-time').classList.remove('hidden');
+            } catch (e) {
+                console.warn('Failed to save best time:', e);
+            }
+        }
+
+        // Phase 4: Card Sliding (T017-T020)
+
+        let currentPairStack = null;
+
+        function slideCardToBottom(card) {
+            const matchedArea = document.getElementById('matched-cards-area');
+            matchedArea.classList.remove('hidden');
+
+            // Create a new stack for the first card of a pair
+            if (!currentPairStack) {
+                currentPairStack = document.createElement('div');
+                currentPairStack.className = 'matched-pair-stack';
+                matchedArea.appendChild(currentPairStack);
+            }
+
+            // Clone the card for bottom area
+            const clone = card.element.cloneNode(true);
+            clone.classList.add('matched-card-small');
+            clone.classList.add('matched');
+            clone.classList.add('flipped');
+            currentPairStack.appendChild(clone);
+
+            // Reset stack tracker after second card
+            if (currentPairStack.children.length === 2) {
+                currentPairStack = null;
+            }
+
+            // Hide original card in grid
+            card.element.style.visibility = 'hidden';
+        }
+
+        function pulseBottomCards() {
+            const matchedArea = document.getElementById('matched-cards-area');
+            const cards = matchedArea.querySelectorAll('.matched-card-small');
+            cards.forEach(card => {
+                card.classList.add('pulse');
+                setTimeout(() => card.classList.remove('pulse'), 500);
+            });
+        }
+
+        // Phase 5: Motivational Messages (T022-T024)
+
+        function showMotivationalMessage(matchCount) {
+            if (MOTIVATIONAL_MESSAGES[matchCount] !== undefined) {
+                const msgDiv = document.getElementById('motivational-message');
+                msgDiv.textContent = MOTIVATIONAL_MESSAGES[matchCount];
+                msgDiv.classList.remove('hidden', 'fadeOut');
+                msgDiv.classList.add('fadeIn');
+
+                setTimeout(() => {
+                    msgDiv.classList.remove('fadeIn');
+                    msgDiv.classList.add('fadeOut');
+                    setTimeout(() => {
+                        msgDiv.classList.add('hidden');
+                        msgDiv.classList.remove('fadeOut');
+                    }, 400);
+                }, 2500);
+            }
+        }
+
+        // Phase 6: Confetti Animation (T025-T028)
+
+        function createConfetti(x, y, count) {
+            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+            const emojis = ['🎉', '🎊', '⭐', '✨'];
+
+            for (let i = 0; i < count; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+
+                if (Math.random() > 0.5) {
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                } else {
+                    confetti.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+                    confetti.style.fontSize = '20px';
+                }
+
+                confetti.style.left = `${x + (Math.random() - 0.5) * 100}px`;
+                confetti.style.top = `${y}px`;
+                confetti.style.animation = `confettiFall ${1 + Math.random() * 0.5}s linear forwards`;
+
+                document.body.appendChild(confetti);
+
+                setTimeout(() => confetti.remove(), 2000);
+            }
+        }
+
+        function removeConfetti() {
+            document.querySelectorAll('.confetti').forEach(el => el.remove());
+        }
+
+        // Phase 7: Fireworks (T029-T032)
+
+        function createFireworks() {
+            const colors = ['#ff4444', '#4444ff', '#ffd700', '#ff44ff', '#44ffff'];
+
+            for (let i = 0; i < 10; i++) {
+                setTimeout(() => {
+                    const firework = document.createElement('div');
+                    firework.className = 'firework';
+                    firework.style.left = `${20 + Math.random() * 60}%`;
+                    firework.style.top = `${20 + Math.random() * 60}%`;
+                    firework.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    firework.style.setProperty('--tx', `${(Math.random() - 0.5) * 200}px`);
+                    firework.style.setProperty('--ty', `${(Math.random() - 0.5) * 200}px`);
+                    firework.style.animation = `fireworkBurst ${1 + Math.random() * 0.5}s ease-out`;
+
+                    document.body.appendChild(firework);
+
+                    setTimeout(() => firework.remove(), 2000);
+                }, i * 300);
+            }
+        }
+
+        // T013: Render cards
+        function renderCards() {
+            const container = document.getElementById('grid-container');
+            container.innerHTML = '';
+
+            gameState.cards.forEach(card => {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'card';
+                cardDiv.dataset.id = card.id;
+                cardDiv.dataset.photoIndex = card.photoIndex;
+                cardDiv.dataset.state = card.state;
+
+                const cardInner = document.createElement('div');
+                cardInner.className = 'card-inner';
+
+                const cardBack = document.createElement('div');
+                cardBack.className = 'card-back';
+                cardBack.textContent = '🎴';
+
+                const cardFront = document.createElement('div');
+                cardFront.className = 'card-front';
+
+                const img = document.createElement('img');
+                img.src = PHOTOS[card.photoIndex].src;
+                img.alt = 'Card image';
+                cardFront.appendChild(img);
+
+                cardInner.appendChild(cardBack);
+                cardInner.appendChild(cardFront);
+                cardDiv.appendChild(cardInner);
+
+                // Apply current state
+                if (card.state === 'flipped' || card.state === 'matched') {
+                    cardDiv.classList.add('flipped');
+                }
+                if (card.state === 'matched') {
+                    cardDiv.classList.add('matched');
+                }
+
+                container.appendChild(cardDiv);
+                card.element = cardDiv;
+            });
+        }
+
+        // T014: Handle card click
+        function handleCardClick(event) {
+            const cardElement = event.target.closest('.card');
+            if (!cardElement) return;
+
+            const cardId = parseInt(cardElement.dataset.id);
+            const card = gameState.cards[cardId];
+
+            // T017: Early click handler - cancel existing flip-back timeout
+            if (flipBackTimeout && gameState.flippedCards.length === 2) {
+                clearTimeout(flipBackTimeout);
+                flipBackTimeout = null;
+                flipCardsBack();
+            }
+
+            // Validate click
+            if (!canFlipCard(card)) return;
+
+            // Flip the card
+            flipCard(card);
+
+            // T014: Start timer on first click
+            if (gameState.startTime === null) {
+                gameState.startTime = Date.now();
+                startTimer();
+            }
+
+            // T015: Check for match after second card
+            if (gameState.flippedCards.length === 2) {
+                checkForMatch();
+            }
+        }
+
+        function canFlipCard(card) {
+            return card.state === 'face-down' &&
+                   !gameState.isLocked &&
+                   gameState.flippedCards.length < 2;
+        }
+
+        function flipCard(card) {
+            card.state = 'flipped';
+            card.element.classList.add('flipped');
+            card.element.dataset.state = 'flipped';
+            gameState.flippedCards.push(card);
+        }
+
+        // T015: Check for match
+        function checkForMatch() {
+            const [card1, card2] = gameState.flippedCards;
+
+            if (card1.photoIndex === card2.photoIndex) {
+                // Match found!
+                setTimeout(() => {
+                    card1.state = 'matched';
+                    card2.state = 'matched';
+                    card1.element.classList.add('matched');
+                    card2.element.classList.add('matched');
+                    card1.element.dataset.state = 'matched';
+                    card2.element.dataset.state = 'matched';
+
+                    gameState.matchedPairs.push(card1.photoIndex);
+
+                    // T018: Slide matched cards to bottom
+                    slideCardToBottom(card1);
+                    slideCardToBottom(card2);
+
+                    // T027: Create confetti at matched card center
+                    const rect1 = card1.element.getBoundingClientRect();
+                    const rect2 = card2.element.getBoundingClientRect();
+                    const centerX = (rect1.left + rect2.left + rect1.width) / 2;
+                    const centerY = (rect1.top + rect2.top + rect1.height) / 2;
+                    createConfetti(centerX, centerY, 18);
+
+                    // T023: Show motivational message
+                    showMotivationalMessage(gameState.matchedPairs.length);
+
+                    gameState.flippedCards = [];
+
+                    // T024: Save state after match
+                    saveGameState();
+
+                    // T019: Check if game complete
+                    checkGameComplete();
+                }, 600); // Wait for flip animation
+            } else {
+                // No match - flip back after 2 seconds
+                gameState.isLocked = true;
+                flipBackTimeout = setTimeout(() => {
+                    flipCardsBack();
+                    flipBackTimeout = null;
+                }, 2000);
+            }
+        }
+
+        // T016: Flip cards back
+        function flipCardsBack() {
+            // T020: Pulse bottom cards before flipping back
+            pulseBottomCards();
+
+            gameState.flippedCards.forEach(card => {
+                card.state = 'face-down';
+                card.element.classList.remove('flipped');
+                card.element.dataset.state = 'face-down';
+            });
+            gameState.flippedCards = [];
+            gameState.isLocked = false;
+        }
+
+        // T018: Timer functionality
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                const elapsed = Date.now() - gameState.startTime;
+                updateTimerDisplay(elapsed);
+            }, 100);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function updateTimerDisplay(elapsed) {
+            const seconds = Math.floor(elapsed / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            const display = `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+            document.getElementById('timer-display').textContent = display;
+        }
+
+        // Phase 4: Game Completion & Restart (T019-T021)
+
+        // T019: Check game complete
+        function checkGameComplete() {
+            if (gameState.matchedPairs.length === 10) {
+                gameState.endTime = Date.now();
+                stopTimer();
+
+                const elapsed = gameState.endTime - gameState.startTime;
+                const seconds = Math.floor(elapsed / 1000);
+                const minutes = Math.floor(seconds / 60);
+                const remainingSeconds = seconds % 60;
+                const timeDisplay = `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+
+                // T015: Check if new best time
+                const currentBestTime = loadBestTime();
+                let isNewRecord = false;
+                if (!currentBestTime || elapsed < currentBestTime) {
+                    saveBestTime(elapsed);
+                    isNewRecord = true;
+                }
+
+                // T020: Random celebration message
+                let randomMessage = CELEBRATION_MESSAGES[Math.floor(Math.random() * CELEBRATION_MESSAGES.length)];
+
+                // T015: Add new record message
+                if (isNewRecord) {
+                    randomMessage = '🎉 NEW RECORD! 🎉\n' + randomMessage;
+                }
+
+                // T031: Add clapping emojis
+                randomMessage += '\n👏 👏 👏';
+
+                document.getElementById('win-message').textContent = randomMessage;
+                document.getElementById('final-time-value').textContent = timeDisplay;
+
+                // T031: Create fireworks before showing overlay
+                createFireworks();
+
+                document.getElementById('celebration-overlay').classList.remove('hidden');
+
+                // T024: Save final state
+                saveGameState();
+            }
+        }
+
+        // T021: Handle restart
+        function handleRestart() {
+            document.getElementById('celebration-overlay').classList.add('hidden');
+
+            // T032: Remove all fireworks from DOM
+            document.querySelectorAll('.firework').forEach(fw => fw.remove());
+
+            // T032: Clear matched cards area
+            const matchedArea = document.getElementById('matched-cards-area');
+            matchedArea.innerHTML = '';
+            matchedArea.classList.add('hidden');
+
+            createNewGame();
+            renderCards();
+            document.getElementById('timer-display').textContent = '0:00';
+
+            // T024: Save new game state
+            saveGameState();
+        }
+
+        // Phase 5: localStorage Persistence (T022-T025)
+
+        // T022: Save game state
+        function saveGameState() {
+            try {
+                const stateToSave = {
+                    cards: gameState.cards.map(card => ({
+                        id: card.id,
+                        photoIndex: card.photoIndex,
+                        state: card.state
+                    })),
+                    matchedPairs: gameState.matchedPairs,
+                    startTime: gameState.startTime,
+                    endTime: gameState.endTime
+                };
+                localStorage.setItem('memoryGameState', JSON.stringify(stateToSave));
+            } catch (e) {
+                // T025: Handle quota exceeded - continue without saving
+                console.warn('localStorage save failed:', e);
+            }
+        }
+
+        // T023: Load game state
+        function loadGameState() {
+            try {
+                const saved = localStorage.getItem('memoryGameState');
+                if (!saved) {
+                    createNewGame();
+                    return false;
+                }
+
+                const savedState = JSON.parse(saved);
+
+                // Reconstruct game state
+                gameState.cards = savedState.cards.map(card => ({
+                    ...card,
+                    element: null
+                }));
+                gameState.matchedPairs = savedState.matchedPairs || [];
+                gameState.startTime = savedState.startTime;
+                gameState.endTime = savedState.endTime;
+                gameState.flippedCards = [];
+                gameState.isLocked = false;
+
+                // Resume timer if game in progress
+                if (gameState.startTime && !gameState.endTime) {
+                    startTimer();
+                }
+
+                // Show celebration if game was complete
+                if (gameState.matchedPairs.length === 10) {
+                    const elapsed = gameState.endTime - gameState.startTime;
+                    const seconds = Math.floor(elapsed / 1000);
+                    const minutes = Math.floor(seconds / 60);
+                    const remainingSeconds = seconds % 60;
+                    const timeDisplay = `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+
+                    const randomMessage = CELEBRATION_MESSAGES[Math.floor(Math.random() * CELEBRATION_MESSAGES.length)];
+                    document.getElementById('win-message').textContent = randomMessage;
+                    document.getElementById('final-time-value').textContent = timeDisplay;
+                    document.getElementById('celebration-overlay').classList.remove('hidden');
+                }
+
+                return true;
+            } catch (e) {
+                // T025: Handle invalid JSON - start new game
+                console.warn('Failed to load saved state:', e);
+                createNewGame();
+                return false;
+            }
+        }
+
+        // Phase 6: Event Wiring & Initialization (T026-T028)
+
+        // T026 & T028: Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // T028: Preload all photos
+            PHOTOS.forEach(photo => {
+                const img = new Image();
+                img.src = photo.src;
+            });
+
+            // T016: Load best time on page load
+            loadBestTime();
+
+            // T026: Load state or create new game
+            loadGameState();
+            renderCards();
+
+            // T026: Attach click listener to grid (event delegation)
+            document.getElementById('grid-container').addEventListener('click', handleCardClick);
+
+            // T027: Wire restart button
+            document.getElementById('restart-button').addEventListener('click', handleRestart);
+        });
+    </script>
+</body>
+</html>
