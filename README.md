@@ -2,6 +2,8 @@
 
 A fun and colorful memory matching game built for kids! Match all 10 pairs of photo cards as fast as you can.
 
+Vibe-coded with my kid for fun one day ...
+
 ## ✨ Features
 
 - 🎯 4×5 grid with 20 cards (10 pairs)
